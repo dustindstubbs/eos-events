@@ -1,4 +1,4 @@
-# Event Display
+# EOS Events
 A WordPress custom post type for managing and displaying events.
 
 ## Installation
