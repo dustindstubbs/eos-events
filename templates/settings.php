@@ -33,8 +33,10 @@ class eos_events_settings {
 			<h2 style="margin-right:30%"><b>A couple notes:</b></h2>
 			<ul>
 				<li>This plugin checks twice daily (via WordPress cron) for expired events, and moves them to trash.</li>
-				<li>The shortcode <b>[event_banner]</b> displays concise info of all events in cronologically ordered banners, wrapped in BootStrap classes.</li>
+				<li>The shortcode <b>[event_banner]</b> displays the title of events within the event limit in cronological order, wrapped in BootStrap classes, with JS/cookies for user hidden events.</li>
+				<li>The shortcode <b>[event_banner_simple]</b> displays the title of all events in cronological order, wrapped in BootStrap classes.</li>
 				<li>The shortcode <b>[event_callout]</b> displays info and thumbnail of the closest event, wrapped in BootStrap classes.</li>
+				<li>The shortcode <b>[event_callout_all]</b> displays info and thumbnail of all events, wrapped in BootStrap classes.</li>
 			</ul>
 
 			<form method="post" action="options.php">
@@ -70,14 +72,39 @@ class eos_events_settings {
 			'eos_events_settings_setting_section' // section
 		);
 
+		add_settings_field(
+			'event_page_1', // id
+			'Event Page URL', // title
+			array( $this, 'event_page_1_callback' ), // callback
+			'eos-events-settings-admin', // page
+			'eos_events_settings_setting_section' // section
+		);
+
+		add_settings_field(
+			'more_text_2', // id
+			'More Button Text', // title
+			array( $this, 'more_text_2_callback' ), // callback
+			'eos-events-settings-admin', // page
+			'eos_events_settings_setting_section' // section
+		);
+
 	}
 
 	public function eos_events_settings_sanitize($input) {
 		$sanitary_values = array();
+		
 		if ( isset( $input['banner_limit_0'] ) ) {
 			$sanitary_values['banner_limit_0'] = sanitize_text_field( $input['banner_limit_0'] );
 		}
-
+		
+		if ( isset( $input['event_page_1'] ) ) {
+			$sanitary_values['event_page_1'] = sanitize_text_field( $input['event_page_1'] );
+		}
+		
+		if ( isset( $input['more_text_2'] ) ) {
+			$sanitary_values['more_text_2'] = sanitize_text_field( $input['more_text_2'] );
+		}
+		
 		return $sanitary_values;
 	}
 
@@ -91,6 +118,21 @@ class eos_events_settings {
 			isset( $this->eos_events_settings_options['banner_limit_0'] ) ? esc_attr( $this->eos_events_settings_options['banner_limit_0']) : ''
 		);
 	}
+
+	public function event_page_1_callback() {
+		printf(
+			'<input class="regular-text" type="text" name="eos_events_settings_option_name[event_page_1]" id="event_page_1" value="%s" placeholder="/events">',
+			isset( $this->eos_events_settings_options['event_page_1'] ) ? esc_attr( $this->eos_events_settings_options['event_page_1']) : ''
+		);
+	}
+
+	public function more_text_2_callback() {
+		printf(
+			'<input class="regular-text" type="text" name="eos_events_settings_option_name[more_text_2]" id="more_text_2" value="%s" placeholder="More Upcoming Events →">',
+			isset( $this->eos_events_settings_options['more_text_2'] ) ? esc_attr( $this->eos_events_settings_options['more_text_2']) : ''
+		);
+	}
+
 }
 if ( is_admin() )
 	$eos_events_settings = new eos_events_settings();
@@ -98,5 +140,7 @@ if ( is_admin() )
 /* 
  * Retrieve this value with:
  * $eos_events_settings_options = get_option( 'eos_events_settings_option_name' ); // Array of All Options
- * $banner_limit_0 = $eos_events_settings_options['banner_limit_0']; // Admin Email Address
+ * $banner_limit_0 = $eos_events_settings_options['banner_limit_0']; // Banner limit
+ * $event_page_1 = $eos_events_settings_options['event_page_1']; // Event page URL
+ * $more_text_2 = $eos_events_settings_options['more_text_2']; // More button text
  */

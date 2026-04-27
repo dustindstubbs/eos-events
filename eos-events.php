@@ -7,7 +7,7 @@
 /*
 Plugin Name: EOS Events
 Description: A quick solution for managing and displaying events.
-Version: 0.1.3
+Version: 0.1.5
 Author: Dustin Stubbs
 License GPLv2 or later
 */
@@ -57,7 +57,11 @@ class eos_events
 
 		add_shortcode( 'event_banner', array( $this, 'event_banner' ) );
 
+		add_shortcode( 'event_banner_simple', array( $this, 'event_banner_simple' ) );
+
 		add_shortcode( 'event_callout', array( $this, 'event_callout' ) );
+
+		add_shortcode( 'event_callout_all', array( $this, 'event_callout_all' ) );
 
 		add_shortcode( 'event_time', array( $this, 'event_time' ) );
 
@@ -93,7 +97,7 @@ class eos_events
 		if ( !empty( $event_ob[0] ) ) { 
 			$event_ob = $event_ob[0];
 		}
-		// Make the date looks pretty no matter what
+		// Make the date look pretty no matter what
 		if ( $event_ob != null ) {
 			$event_date = get_post_meta( $event_ob->{'ID'}, 'eos_events_meta_date', true );
 			if ( $event_date != null ) {
@@ -130,11 +134,71 @@ class eos_events
 		}
 	}
 
+	public function event_callout_all() {
+		$event_ob = get_posts( array( 'post_type' => 'event' ) );
+
+		// Make the date look pretty no matter what
+		if ( $event_ob != null ) {
+			?>
+			<style>
+				@media (min-width: 992px) {
+                    .event-image {
+                        order: 2
+                    }
+					.event-row:nth-child(odd) > .event-image {
+						order: 1 !important
+					}
+					.event-row:nth-child(odd) > .event-text {
+						padding-right: 0 !important;
+						padding-left: 3rem !important;
+					}
+				}
+			</style>
+			<?php
+			foreach ( $event_ob as $event_post) {
+				$event_date = get_post_meta( $event_post->{'ID'}, 'eos_events_meta_date', true );
+				if ( $event_date != null ) {
+					$event_date = date("l,\&\\n\b\s\p\;F\&\\n\b\s\p\;jS", strtotime( $event_date ) );
+				}else{
+					$event_date = '';
+				}
+				$event_time = get_post_meta( $event_post->{'ID'}, 'eos_events_meta_time', true );
+				if ( $event_time != null ) {
+					if ( date( "i", strtotime( $event_time ) ) == '00' ) {
+						$event_time = ' at '. date( "ga", strtotime( $event_time ) );
+					}else{
+						$event_time = ' at '. date( "g:ia", strtotime( $event_time ) );
+					}
+				}else{
+					$event_time = '';
+				}
+				$post_thumb = get_the_post_thumbnail_url( $event_post->{'ID'} );
+				$post_thumb = ($post_thumb != null) ? $post_thumb : plugins_url( '/assets/event-placeholder.webp', __FILE__ ) ;
+				?>
+				<div class="row event-row">
+					<div class="col-lg-6 align-content-center event-image">
+						<img alt="Current event featured image" class="rounded" style="aspect-ratio: 16 / 9; object-fit: cover;" src="<?php echo $post_thumb ?>">
+					</div>
+					<div class="col-lg-6 order-lg-1 my-auto event-text" style="padding-top: 5rem; padding-bottom: 5rem; padding-right: 3rem;">
+						<h2 class="mb-3 mt-0"><?php echo $event_post->{'post_title'} ?></h2>
+						<p class="text-muted"><?php echo $event_date ?><?php echo $event_time ?></p>
+						<p><?php echo str_replace( '...', '', get_the_excerpt( $event_post->{'ID'} ) ) ?></p>
+						<a href="<?php echo get_permalink( $event_post->{'ID'} ) ?>" class="btn btn-dark mt-2 text-white">Read More →</a>
+					</div>
+				</div>
+				<?php
+			}
+		}
+	}
+
 	public function event_banner() {
 		// Shortcode to display most recent events as BootStrap banners (set display limit in settings)
 		$event_ob = get_posts( array( 'post_type' => 'event' ) );
 		$banner_limit = get_option('eos_events_settings_option_name')['banner_limit_0'] ?? 2;
-		if ( $event_ob != null ) {
+		$event_page = get_option('eos_events_settings_option_name')['event_page_1'] ?? "/events";
+		$more_text = get_option('eos_events_settings_option_name')['more_text_2'] ?? "More Upcoming Events →";
+		if ( $event_ob != null && $_SERVER['REQUEST_URI'] != $event_page ) {
+			echo '<!--' . $_SERVER['REQUEST_URI'] . '-->';
 			$i = 0;
 			foreach ( $event_ob as $event_post) {
 				$i++;
@@ -167,7 +231,53 @@ class eos_events
 
 				<?php
 				// Banner limit based on setting field
-				if($i==$banner_limit) break; // Stop after showing 3 posts
+				if($i==$banner_limit){
+					?>
+					<div id="banner-more" class="eos-banner container-fluid text-center p-2 d-flex justify-content-center align-items-center <?php echo ($i % 2 == 0 ) ? 'bg-dark text-white' : 'bg-light'; ?>">
+						<a class="text-decoration-none" style="color:inherit" href="<?php echo $event_page; ?>"><span class="eos-banner-title"><?php echo $more_text; ?></span></a>
+					</div>
+					<?php
+					break;
+				}
+			}
+		}
+	}
+
+	public function event_banner_simple() {
+		// Shortcode to display most recent events as BootStrap banners (set display limit in settings)
+		$event_ob = get_posts( array( 'post_type' => 'event' ) );
+		if ( $event_ob != null ) {
+			$i = 0;
+			foreach ( $event_ob as $event_post) {
+				$i++;
+				$event_date = get_post_meta( $event_post->{'ID'}, 'eos_events_meta_date', true );
+				if ( $event_date != null ) {
+					$event_date = ' –&nbsp;' . date('M.\&\\n\b\s\p\;jS', strtotime( $event_date ) );
+				}else{
+					$event_date = '';
+				}
+				$event_time = get_post_meta( $event_post->{'ID'}, 'eos_events_meta_time', true );
+				if ( $event_time != null ) {
+					if ( date( "i", strtotime( $event_time ) ) == '00' ) {
+						$event_time = date( "ga", strtotime( $event_time ) );
+					}else{
+						$event_time = date( "g:ia", strtotime( $event_time ) );
+					}
+				}else{
+					$event_time = '';
+				}
+				?>
+
+				
+					<div id="banner-<?php echo $event_post->{'ID'} ?>" class="eos-banner container-fluid text-center p-2 d-flex justify-content-center align-items-center <?php echo ($i % 2 == 0 ) ? 'bg-light' : 'bg-dark text-white'; ?>">
+					    <!-- The intention of the commented lines below is to allow users to X out of events they've seen, which would be stored in a browser cookie -->
+						<!--<div style="min-width:1em;min-height:1em"></div>-->
+						<a class="text-decoration-none" style="color:inherit" href="<?php echo get_permalink($event_post->{'ID'}); ?>"><span class="eos-banner-title"><?php echo $event_post->{'post_title'} ?></span><?php echo $event_date ?>&nbsp;<?php echo $event_time ?>&nbsp;→</a>
+						<!--<svg onclick="eos_banner_close(banner-<?php echo $event_post->{'ID'} ?>)" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="currentcolor" height=".7em" width="1em" version="1.1" id="Capa_1" viewBox="0 0 460.775 460.775" xml:space="preserve" class=""><path d="M285.08,230.397L456.218,59.27c6.076-6.077,6.076-15.911,0-21.986L423.511,4.565c-2.913-2.911-6.866-4.55-10.992-4.55  c-4.127,0-8.08,1.639-10.993,4.55l-171.138,171.14L59.25,4.565c-2.913-2.911-6.866-4.55-10.993-4.55  c-4.126,0-8.08,1.639-10.992,4.55L4.558,37.284c-6.077,6.075-6.077,15.909,0,21.986l171.138,171.128L4.575,401.505  c-6.074,6.077-6.074,15.911,0,21.986l32.709,32.719c2.911,2.911,6.865,4.55,10.992,4.55c4.127,0,8.08-1.639,10.994-4.55  l171.117-171.12l171.118,171.12c2.913,2.911,6.866,4.55,10.993,4.55c4.128,0,8.081-1.639,10.992-4.55l32.709-32.719  c6.074-6.075,6.074-15.909,0-21.986L285.08,230.397z"></path></svg>-->
+					</div>
+				</a>
+
+				<?php
 			}
 		}
 	}
